@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><title>畫面截圖用</title>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../adventure.css"></head>
+<body><div id="app"></div>
+<script>window.GARDEN_ASSETS = '../assets/';</script>
+<script src="../adventure-rules.js"></script>
+<script src="../adventure-app.js"></script>
+<script>
+// 網址 #battle / #map / #library / #pick / #reward / #ending 直接跳到該畫面，方便檢查美術
+const R = GardenAdventure, U = window.GardenUI;
+const go = (g, a) => R.applyAction(g, a).state;
+U.ui.screen = 'game';
+let g = R.createGame([{ name: '玩家1', charId: 'straw' }, { name: '玩家2', charId: 'elf' }, { name: '玩家3', charId: 'shiba' }], { seed: 7 });
+const view = location.hash.slice(1) || 'battle';
+if (view === 'pick') { g.players[0].plant.stage = 1; g.picks = [{ playerId: 'p1', stage: 1, options: R.GROWTH_CARDS.sunflower.grow, enhance: false }]; }
+if (view !== 'garden' && view !== 'pick') {
+  g = go(g, { type: 'advance' });
+  if (view !== 'map') {
+    const fight = R.reachable(g).find(id => g.map[1].find(n => n.id === id).virus);
+    g = go(g, { type: 'move', node: fight });
+    g.players[1].plant.stage = 2; g.players[2].plant.stage = 1;
+    g.players[0].hand = ['thorn', 'leaf+', 'sunseed', 'flame', 'hedge'];
+    if (view === 'reward') { g.battle.virus.hp = 1; g = go(g, { type: 'play', cardIndex: 0 }); }
+    if (view === 'chest') { g.battle = null; g.scene = 'reward'; g.reward = { kind: 'chest', left: 2, taken: [], options: ['grow', 'superfert', 'seed', 'purify'] }; }
+    if (view.indexOf('event-') === 0) { g.battle = null; g.scene = 'event'; g.event = { id: view.slice(6) }; }
+    if (view === 'lose') { g.players[1].hp = 0; g.scene = 'over'; g.result = { win: false, reason: '玩家2 倒下了。' }; }
+    if (view === 'ending') { g.scene = 'over'; g.result = { win: true, reason: '擊敗了「蔓生之王」，病毒退去，陽光重新照亮大地。' }; }
+  }
+}
+U.ui.game = g;
+if (view === 'library') U.ui.library = true;
+if (view === 'home') U.ui.screen = 'home';
+U.render();
+</script></body></html>

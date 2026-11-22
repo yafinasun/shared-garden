@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><title>共享花園 - 規則模擬</title></head>
+<body><pre id="out">running...</pre>
+<script src="../rules.js"></script>
+<script>
+// 簡單機器人：淨化 > 前期補種 > 照料進度最高的植物 > 暖陽 > 種子 > 防護罩 > 棄牌
+// 用 ?variants=... 以外的調整請直接改下面 VARIANTS。
+const R = GardenRules;
+function pick(s) {
+  const p = s.players[s.turnIdx], h = p.hand;
+  const has = id => h.indexOf(id);
+  const plants = s.plants;
+  const infected = plants.filter(x => x.infected);
+  let i;
+  if (infected.length && (i = has('cleanse')) >= 0) return { type: 'play', cardIndex: i, target: infected[0].id };
+  const growable = plants.filter(x => x.stage < 2).sort((a, b) => (b.stage * 10 + b.care) - (a.stage * 10 + a.care));
+  if (s.plants.length < 3 && (i = has('seed')) >= 0) return { type: 'play', cardIndex: i };
+  if (growable.length) {
+    for (const id of ['fertilizer', 'water', 'soil']) if ((i = has(id)) >= 0) return { type: 'play', cardIndex: i, target: growable[0].id };
+  }
+  if ((i = has('sunshine')) >= 0) return { type: 'play', cardIndex: i };
+  if ((i = has('seed')) >= 0 && s.plants.length < R.CONFIG.maxSlots) return { type: 'play', cardIndex: i };
+  if ((i = has('shield')) >= 0 && plants.length) return { type: 'play', cardIndex: i, target: plants[0].id };
+  return { type: 'discard', cardIndex: 0 };
+}
+const IDS = ['straw', 'shiba', 'alien', 'elf'];
+function combos(n) { // 所有 n 人角色組合
+  const out = [];
+  (function rec(start, cur) {
+    if (cur.length === n) { out.push(cur.slice()); return; }
+    for (let i = start; i < IDS.length; i++) { cur.push(IDS[i]); rec(i + 1, cur); cur.pop(); }
+  })(0, []);
+  return out;
+}
+function run(n, N) {
+  let wins = 0, total = 0, rounds = 0, errors = 0;
+  const per = [];
+  for (const chars of combos(n)) {
+    let w = 0;
+    for (let g = 0; g < N; g++) {
+      let s = R.createGame(chars.map(c => ({ charId: c })), { seed: g + 1 });
+      let guard = 0;
+      while (s.phase !== 'over' && guard++ < 1000) {
+        const r = R.applyAction(s, pick(s));
+        if (!r.ok) { errors++; break; }
+        s = r.state;
+      }
+      if (s.phase !== 'over') errors++;
+      if (s.result && s.result.win) w++;
+      rounds += s.round; total++;
+    }
+    wins += w;
+    per.push(chars.map(c => c.slice(0,2)).join('') + ':' + Math.round(w / N * 100));
+  }
+  return { rate: wins / total * 100, avg: rounds / total, errors, per };
+}
+// 要比較的參數組合
+const VARIANTS = [{ name: 'current CONFIG', extra: {}, every: {}, win: {} }]; // 要比較參數時，在這裡加入覆蓋值
+const lines = []; let errors = 0;
+for (const v of VARIANTS) {
+  Object.assign(R.CONFIG.extraAttackByPlayers, v.extra);
+  Object.assign(R.CONFIG.attackEveryByPlayers, v.every);
+  Object.assign(R.CONFIG.winMatureByPlayers, v.win);
+  lines.push('== ' + v.name);
+  for (const n of [2, 3, 4]) {
+    const r = run(n, 300);
+    errors += r.errors;
+    lines.push(n + 'p win% ' + r.rate.toFixed(1) + ' avgRounds ' + r.avg.toFixed(1) + ' [' + r.per.join(' ') + ']');
+  }
+}
+lines.push('errors=' + errors);
+document.getElementById('out').textContent = lines.join('\n');
+</script></body></html>

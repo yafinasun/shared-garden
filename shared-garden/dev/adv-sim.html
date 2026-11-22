@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><title>冒險版機器人模擬</title></head>
+<body><pre id="out">執行中…</pre>
+<script src="../adventure-rules.js"></script>
+<script>
+// 簡單貪心機器人：不代表真人，只用來檢查規則不會卡死、比較不同走法的勝率。
+const R = GardenAdventure;
+const CHARS = Object.keys(R.CHARACTERS);
+const REWARD_IDS = Object.keys(R.REWARDS);
+// 可用網址覆寫數值：adv-sim.html#n=100&hp=0.6,1.5,2.3,3&dmg=1.7&pd=0.8,1.05,1.25,1.5&th=1,2,3,3,4&armor=2
+const Q = new URLSearchParams(location.hash.slice(1));
+if (Q.get('hp')) Q.get('hp').split(',').forEach((v, i) => { R.CONFIG.virusHpScale[i + 1] = Number(v); });
+if (Q.get('dmg')) R.CONFIG.virusDmgScale = Number(Q.get('dmg'));
+if (Q.get('pd')) Q.get('pd').split(',').forEach((v, i) => { R.CONFIG.virusDmgByPlayers[i + 1] = Number(v); });
+if (Q.get('th')) R.CONFIG.thresholds = Q.get('th').split(',').map(Number);
+if (Q.get('gh')) R.CONFIG.gardenHand = Number(Q.get('gh'));
+if (Q.get('armor')) R.VIRUSES.bloom.armor = Number(Q.get('armor'));
+
+function apply(g, a) { const r = R.applyAction(g, a); return r.ok ? r.state : null; }
+
+// 有植物殘骸就升級：先升攻擊牌，輪流替每位玩家升級
+function trade(g) {
+  for (let guard = 0; guard < 20 && g.remains >= R.CONFIG.upgradeCost; guard++) {
+    let done = false;
+    const order = g.players.slice().sort((a, b) => R.playerCards(a).filter(c => c.endsWith('+')).length - R.playerCards(b).filter(c => c.endsWith('+')).length);
+    for (const p of order) {
+      const ids = Object.keys(R.deckCounts(p)).filter(id => R.UPGRADES[id]).sort((a, b) => (R.CARDS[b].dmg || 0) - (R.CARDS[a].dmg || 0));
+      for (const id of ids) {
+        const ng = apply(g, { type: 'upgrade', card: id, playerId: p.id });
+        if (ng) { g = ng; done = true; upgrades++; break; }
+      }
+      if (done) break;
+    }
+    if (!done) break;
+  }
+  return g;
+}
+let upgrades = 0, collected = 0;
+
+// 升階選牌：隨機選一個選項（成熟時偶爾改成強化）
+function resolvePicks(g) {
+  while (g && g.picks.length) {
+    const pk = g.picks[0];
+    const p = g.players.find(x => x.id === pk.playerId);
+    const enh = pk.enhance ? R.enhanceable(p) : [];
+    const choice = enh.length && Math.random() < 0.3 ? 'enhance:' + enh[0] : pk.options[Math.floor(Math.random() * pk.options.length)];
+    g = apply(g, { type: 'pick', choice });
+  }
+  return g;
+}
+
+function gardenPhase(g) {
+  if (R.canTrade(g)) g = trade(g);
+  // 先把地球種子種進空盆栽
+  for (let i = 0; i < R.CONFIG.potSlots && g.seeds > 0; i++) if (!g.pots[i]) g = apply(g, { type: 'sow', pot: i }) || g;
+  for (let guard = 0; guard < 200; guard++) {
+    let moved = false;
+    for (const p of g.players) {
+      if (!p.gardenHand.length) continue;
+      // 優先照料自己的植物；成熟後照料盆栽；再來是最慢的隊友
+      let target = p.plant.stage < R.MAX_STAGE ? p.id : null;
+      if (!target) { const k = g.pots.findIndex(x => x && x.stage < R.MAX_STAGE); if (k >= 0) target = 'pot' + k; }
+      if (!target) { const m = g.players.filter(x => x.plant.stage < R.MAX_STAGE).sort((a, b) => a.plant.stage - b.plant.stage)[0]; if (m) target = m.id; }
+      if (!target) continue;
+      const ng = apply(g, { type: 'play', playerId: p.id, cardIndex: 0, target });
+      if (ng) { g = resolvePicks(ng); moved = true; } // 升階後先選牌
+    }
+    if (!moved) break;
+  }
+  return apply(resolvePicks(g), { type: 'advance' });
+}
+
+function mapStep(g, style) {
+  const ids = R.reachable(g);
+  const nodes = ids.map(id => g.map[g.col + 1].find(n => n.id === id));
+  const isFight = n => !!n.virus;
+  let pick;
+  if (style === 'fight') pick = nodes.find(isFight) || nodes[0];
+  else if (style === 'special') pick = nodes.find(n => !isFight(n)) || nodes[0];
+  else pick = nodes[Math.floor(Math.random() * nodes.length)];
+  return apply(g, { type: 'move', node: pick.id });
+}
+
+function battleStep(g) {
+  if (g.purity > 0 && g.battle.virus.armor > 0) return apply(g, { type: 'purify' });
+  const p = g.players[g.turnIdx];
+  const e = g.battle.energy[p.id];
+  const lowest = g.players.filter(x => x.hp > 0).sort((a, b) => a.hp - b.hp)[0];
+  const order = [];
+  const spore = g.battle.virus.spore;
+  p.hand.forEach((cid, i) => {
+    const c = R.CARDS[cid];
+    if (c.cost > e) return;
+    // 依效果欄位估分數：攻擊優先，有危險時防禦／治療
+    let score = 0, target = p.id;
+    const dmg = (c.dmg || 0) + (c.sporeBonus && spore ? c.sporeBonus : 0) + (c.clearSpores ? spore * c.dmgPerSpore : 0);
+    if (dmg) score = 10 + dmg / Math.max(1, c.cost);
+    if (c.block || c.blockAll || c.selfBlock) { score = Math.max(score, lowest.hp < 20 ? 12 : 5); if (c.block) target = lowest.id; }
+    if (c.heal || c.healAll || c.selfHeal) { if (lowest.hp > 22 && !c.draw && !c.drawTarget) return; score = Math.max(score, 9); if (c.heal) target = lowest.id; }
+    if (c.draw || c.drawAll || c.drawTarget || c.chain) score = Math.max(score, 8);
+    if (c.weaken || c.halve || c.guard || c.thorns) score = Math.max(score, 7);
+    if (c.energy) score = Math.max(score, 6);
+    if (c.power) score = Math.max(score, p.hand.some(x => R.CARDS[x].dmg) ? 13 : 1);
+    if (c.spore || c.sporeClear) score = Math.max(score, spore ? 11 : 2);
+    order.push({ i, score, target });
+  });
+  order.sort((a, b) => b.score - a.score);
+  if (order.length) {
+    const ng = apply(g, { type: 'play', cardIndex: order[0].i, target: order[0].target });
+    if (ng) return ng;
+  }
+  return apply(g, { type: 'endTurn' });
+}
+
+function playGame(players, seed, rewardId, style) {
+  let g = R.createGame(players, { seed });
+  let bossStages = null, fights = 0, specials = 0;
+  for (let guard = 0; guard < 4000 && g.scene !== 'over'; guard++) {
+    if (g.picks.length) g = resolvePicks(g);
+    else if (g.scene === 'garden') g = gardenPhase(g);
+    else if (g.scene === 'map') {
+      g = mapStep(g, style);
+      if (g) { if (R.currentNode(g).virus) fights++; else if (g.scene === 'event' || g.scene === 'reward') specials++; }
+    } else if (g.scene === 'battle') {
+      if (!bossStages && R.VIRUSES[g.battle.virus.id].tier === 'boss') bossStages = g.players.map(p => p.plant.stage);
+      g = battleStep(g);
+    } else if (g.scene === 'event') {
+      g = apply(g, { type: 'event', choice: 0 }) || apply(g, { type: 'event', choice: 1 });
+    } else if (g.scene === 'shop') {
+      g = apply(trade(g), { type: 'leaveShop' });
+    } else if (g.scene === 'reward' && g.reward.kind === 'cards') {
+      // 每人拿第一張候選牌
+      const p = g.players.find(x => !g.reward.done[x.id]);
+      g = apply(g, { type: 'reward', playerId: p.id, choice: g.reward.offers[p.id][0] });
+      collected++;
+    } else if (g.scene === 'reward') {
+      const target = g.players.filter(p => p.plant.stage < R.MAX_STAGE)[0] || g.players[0];
+      let ng = null;
+      for (const c of [rewardId].concat(REWARD_IDS)) {
+        ng = apply(g, { type: 'reward', choice: c, target: target.id });
+        if (ng) break;
+      }
+      g = ng;
+    }
+    if (!g) return { error: 'action rejected' };
+  }
+  if (g.scene !== 'over') return { error: 'stuck at ' + g.scene };
+  return { win: g.result.win, bossStages, fights, pots: g.pots.filter(p => p && p.stage >= R.MAX_STAGE).length,
+    deck: g.players.reduce((n, p) => n + R.playerCards(p).length, 0) / g.players.length };
+}
+
+const out = [];
+const N = Number(Q.get('n') || 150);
+const STYLES = { fight: '偏好戰鬥', random: '隨機', special: '偏好寶箱／事件' };
+for (const style of Object.keys(STYLES)) {
+  const row = [];
+  let stageSum = 0, stageCount = 0, fightSum = 0, potSum = 0, games = 0, errs = 0, deckSum = 0;
+  for (let n = 1; n <= 4; n++) {
+    let wins = 0;
+    for (let i = 0; i < N; i++) {
+      const rid = REWARD_IDS[i % REWARD_IDS.length];
+      const ids = CHARS.slice().sort(() => Math.random() - 0.5).slice(0, n);
+      const r = playGame(ids.map((c, k) => ({ name: '玩家' + (k + 1), charId: c })), i + 1, rid, style);
+      if (r.error) { errs++; continue; }
+      games++;
+      if (r.win) wins++;
+      fightSum += r.fights; potSum += r.pots; deckSum += r.deck;
+      if (r.bossStages) r.bossStages.forEach(s => { stageSum += s; stageCount++; });
+    }
+    row.push(n + '人 ' + (wins / N * 100).toFixed(0) + '%');
+  }
+  out.push('「' + STYLES[style] + '」' + row.join('、') + '｜平均戰鬥 ' + (fightSum / games).toFixed(1) + ' 場（含 BOSS）｜進 BOSS 植物階段 ' +
+    (stageCount ? (stageSum / stageCount).toFixed(2) : '-') + '｜成熟盆栽 ' + (potSum / games).toFixed(2) + '｜平均升級 ' + (upgrades / games).toFixed(2) + ' 張｜結束時每人牌組 ' + (deckSum / games).toFixed(1) + ' 張' + (errs ? '｜錯誤 ' + errs : ''));
+  upgrades = 0;
+}
+out.push('（階段：0 幼苗、1 成長、2 成熟）');
+document.getElementById('out').textContent = out.join('\n');
+</script></body></html>

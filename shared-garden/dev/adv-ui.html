@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><title>冒險版 UI 冒煙測試</title>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../adventure.css"></head>
+<body><div id="app"></div><pre id="out"></pre>
+<script>
+const errs = [];
+window.onerror = (m) => errs.push(String(m));
+window.GARDEN_ASSETS = '../assets/';
+window.GARDEN_MUSIC = '../music/';
+</script>
+<script src="../adventure-rules.js"></script>
+<script src="../adventure-app.js"></script>
+<script>
+// 模擬操作走完一整局。網址 #style=special 會優先走寶箱／事件，預設優先戰鬥。
+// 會用「拖拉」出牌（PointerEvent），拖不成功才改用點擊。
+const $ = (q) => document.querySelector(q), $$ = (q) => [...document.querySelectorAll(q)];
+const txt = (q) => ($(q) || {}).textContent;
+const style = new URLSearchParams(location.hash.slice(1)).get('style') || 'fight';
+const out = [];
+const seen = { gardenOnlyCare: true, battleNoCare: true, drags: 0, dragFail: 0, sow: 0, potCared: 0, chest: 0, event: 0, battles: 0, mapCols: 0, libraryCards: 0, sunrise: false };
+
+function center(el) { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+function fire(type, target, p) {
+  target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: p.x, clientY: p.y, pointerId: 1, button: 0, isPrimary: true }));
+}
+/** 把第 i 張手牌拖到符合 selector 的目標；回傳是否成功出牌 */
+function dragCard(i, targetSel) {
+  const card = $$('.hand .card[data-act=card]:not([disabled])')[i];
+  if (!card) return false;
+  const before = $$('.hand .card[data-act=card]').length + '|' + txt('.log');
+  const a = center(card);
+  fire('pointerdown', card, a);
+  fire('pointermove', window, { x: a.x + 15, y: a.y - 15 }); // 開始拖曳，畫面會重新繪製目標
+  const t = $(targetSel);
+  if (!t) { fire('pointerup', window, a); return false; }
+  t.scrollIntoView({ block: 'center' });
+  const b = center(t);
+  fire('pointermove', window, b);
+  fire('pointerup', window, b);
+  const ok = ($$('.hand .card[data-act=card]').length + '|' + txt('.log')) !== before;
+  if (ok) seen.drags++; else seen.dragFail++;
+  return ok;
+}
+
+try {
+  $('[data-act=library]').click();
+  seen.libraryCards = $$('.library .lib-item').length;
+  $('button[data-act=closeLibrary]').click();
+  $('[data-act=local]').click();
+  $('[data-act=count][data-n="2"]').click();
+  $('[data-act=start]').click();
+  let guard = 0;
+  seen.startDeck = window.GardenUI.ui.game.players.map(p => GardenAdventure.playerCards(p).length).join('/');
+  seen.images = $$('img.art').length;
+  const M = window.GardenUI.music;
+  M.unlock(); // 模擬玩家點擊後開始播放
+  seen.tracks = [];
+  const noteTrack = () => { const t = M.track; if (seen.tracks[seen.tracks.length - 1] !== t) seen.tracks.push(t); };
+  while (!$('.ending') && !$('.overlay .dialog.lose') && guard++ < 1200) {
+    noteTrack();
+    if ($('.pick-overlay')) {
+      // 植物升階選牌
+      seen.picks = (seen.picks || 0) + 1;
+      const enh = $('[data-act=pick][data-id^="enhance:"]');
+      if (enh && seen.picks % 2 === 0) { enh.click(); seen.enhanced = (seen.enhanced || 0) + 1; }
+      else $('.pick-card[data-act=pick]').click();
+      continue;
+    }
+    if ($('.reward-row')) {
+      // 戰後每人選一張地球植物牌
+      const btn = $('.reward-row:not(.done) .card[data-act=takeCard]');
+      if (btn) { btn.click(); seen.collected = (seen.collected || 0) + 1; continue; }
+    }
+    if ($('[data-act=upgrade]:not([disabled])')) {
+      // 休息點或研究者事件：有植物殘骸就升級一張
+      const before = $('.hud').textContent;
+      $('[data-act=upgrade]:not([disabled])').click();
+      if ($('.hud').textContent !== before) seen.upgrades = (seen.upgrades || 0) + 1;
+      continue;
+    }
+    if ($('[data-act=leaveShop]')) { seen.shop = (seen.shop || 0) + 1; $('[data-act=leaveShop]').click(); continue; }
+    if ($('.greenhouse')) {
+      seen.stageLabels = $$('.greenhouse .plot')[0].querySelectorAll('.stage-track span').length;
+      $$('.greenhouse .card .k').forEach(k => { if (k.textContent !== '照料') seen.gardenOnlyCare = false; });
+      const sowBtn = $('[data-act=sow]');
+      if (sowBtn) { sowBtn.click(); seen.sow++; continue; }
+      let played = false;
+      const tabs = $$('[data-act=viewer]').length;
+      for (let t = 0; t < tabs && !played; t++) {
+        $$('[data-act=viewer]')[t].click();
+        if (!$('.hand .card[data-act=card]')) continue;
+        // 優先照料盆栽，驗證盆栽可以當目標
+        $('.hand .card[data-act=card]').click();
+        const potT = $('.pot.targetable');
+        const anyT = $('.plot.targetable');
+        $('.hand .card.sel') && $('.hand .card.sel').click(); // 取消選取，改用拖拉
+        if (potT && dragCard(0, '.pot.targetable')) { seen.potCared++; played = true; }
+        else if (anyT && dragCard(0, '.plot.targetable')) played = true;
+      }
+      if (!played) $('[data-act=advance]').click();
+    } else if ($('.map-scene')) {
+      seen.mapCols = Math.max(seen.mapCols, new Set($$('.map-node').map(n => n.style.left)).size);
+      const opts = $$('.map-node.reachable');
+      const fight = opts.find(n => /mini|elite|boss/.test(n.className));
+      const special = opts.find(n => /treasure|event/.test(n.className));
+      (style === 'special' ? (special || opts[0]) : (fight || opts[0])).click();
+    } else if ($('.event-card')) {
+      seen.event++;
+      $('[data-act=eventChoice]:not([disabled])').click();
+    } else if ($('.chest-card')) {
+      if (!seen._inChest) { seen.chest++; seen._inChest = true; }
+      const btn = $('[data-act=reward][data-id=purify]:not([disabled])') || $('[data-act=reward][data-id=seed]:not([disabled])');
+      btn.click();
+      if (!$('.chest-card')) seen._inChest = false;
+    } else if ($('.battle-scene')) {
+      if (!seen._inBattle) { seen.battles++; seen._inBattle = true; }
+      $$('.battle-scene ~ .panel .card .k').forEach(k => { if (k.textContent === '照料') seen.battleNoCare = false; });
+      if ($('[data-act=purify]')) { $('[data-act=purify]').click(); continue; }
+      const cards = $$('.hand .card[data-act=card]:not([disabled])');
+      if (!cards.length) { $('[data-act=endturn]').click(); continue; }
+      // 攻擊牌拖到病毒；需要目標的牌拖到第一位玩家
+      const idx = cards.findIndex(c => /kind-攻擊/.test(c.className));
+      const i = idx >= 0 ? idx : 0;
+      const G = window.GardenUI.ui.game;
+      const cid = G.players[G.turnIdx].hand[Number(cards[i].dataset.i)];
+      const needsTarget = GardenAdventure.CARDS[cid].target === 'player';
+      if (!dragCard(i, needsTarget ? '.hero.targetable' : '.foe')) {
+        cards[i] && $$('.hand .card[data-act=card]:not([disabled])')[i].click();
+        const t = $('.hero.targetable') || $('.foe.targetable');
+        if (t) t.click(); else $('[data-act=endturn]').click();
+      }
+    } else break;
+    if (!$('.battle-scene')) seen._inBattle = false;
+  }
+  noteTrack();
+  seen.tracks = seen.tracks.join('>');
+  seen.musicSrc = decodeURIComponent((M.audio && M.audio.src || '').split('/').pop());
+  // 音樂開關
+  const before = M.on; $('[data-act=music]').click(); seen.musicToggle = before !== M.on; $('[data-act=music]').click();
+  const result = $('.ending') ? '成功結局（日出）' : txt('.dialog h2');
+  // 不論這局輸贏，都把狀態改成勝利，檢查日出結局畫面能正常顯示
+  const U = window.GardenUI.ui;
+  U.game = Object.assign({}, U.game, { scene: 'over', result: { win: true, reason: '測試用勝利' } });
+  window.GardenUI.render();
+  seen.sunrise = !!$('.ending .end-sun') && !!$('.ending .end-text') && $$('.ending .end-plant').length >= 2;
+  delete seen._inBattle; delete seen._inChest;
+  out.push('style=' + style + ' finished=' + !!($('.ending') || $('.overlay .dialog.lose')) + ' steps=' + guard + ' result=' + result);
+  out.push('checks=' + JSON.stringify(seen));
+} catch (e) { errs.push('EXC ' + e.message + ' ' + e.stack); }
+// 拖曳結束後會短暫忽略一次點擊（避免放開時誤觸），等計時器跑完再測重新開始
+setTimeout(function () {
+  try {
+    $('[data-act=restart]').click();
+    out.push('restart ok: ' + !!$('.greenhouse') + ' ending=' + !!$('.ending'));
+  } catch (e) { errs.push('EXC ' + e.message); }
+  out.push('errors=' + JSON.stringify(errs));
+  $('#out').textContent = out.join('\n');
+}, 50);
+</script></body></html>

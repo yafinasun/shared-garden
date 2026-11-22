@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="UTF-8"><title>UI 冒煙測試</title></head>
+<body><div id="app"></div><pre id="out"></pre>
+<script src="../rules.js"></script>
+<script>
+const errs = [];
+window.onerror = (m) => errs.push(String(m));
+</script>
+<script src="../app.js"></script>
+<script>
+// 模擬點擊走完一整局；每次都選第一張牌，有可選目標就點第一個。
+const $ = (q) => document.querySelector(q), $$ = (q) => [...document.querySelectorAll(q)];
+const txt = (q) => ($(q) || {}).textContent;
+const out = [];
+try {
+  $('[data-act=local]').click();
+  $('[data-act=count][data-n="3"]').click();
+  $('[data-act=char][data-i="0"][data-id="elf"]').click(); // 角色互換測試
+  $('[data-act=start]').click();
+  out.push('game screen: ' + !!$('.garden') + ', plants=' + $$('.plant').length + ', cards=' + $$('.card').length);
+  let guard = 0;
+  while (!$('.overlay') && guard++ < 300) {
+    $$('.card')[0].click();
+    const t = $$('.plant.targetable');
+    if (t.length) t[0].click();
+    else {
+      if (!$('[data-act=play]').disabled) $('[data-act=play]').click();
+      if ($('.card.sel')) $('[data-act=discard]').click(); // 出牌失敗（例如花園已滿）時改為棄牌
+    }
+  }
+  out.push('finished=' + !!$('.overlay') + ' steps=' + guard + ' result=' + txt('.dialog h2'));
+  out.push('state: ' + txt('.status') + ' | hint=' + txt('.hint') + ' | err=' + txt('.error'));
+  $('[data-act=restart]').click();
+  out.push('restart ok: ' + !!$('.garden') + ' overlay=' + !!$('.overlay'));
+} catch (e) { errs.push('EXC ' + e.message); }
+out.push('errors=' + JSON.stringify(errs));
+$('#out').textContent = out.join('\n');
+</script></body></html>

@@ -1,0 +1,398 @@
+/* 冒險版樣式（疊加在 style.css 之上） */
+#app { max-width: 1100px; }
+.btn.small { padding: 6px 10px; min-height: 34px; font-size: .9rem; }
+.tiny { font-size: .72rem; }
+
+/* 上方資源列 */
+.hud { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 10px; margin-bottom: 10px; font-weight: 700; }
+.hud .spacer { flex: 1; }
+
+/* 場景與橫向視差背景 */
+.scene { position: relative; border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+.scene-body { position: relative; z-index: 1; padding: 14px; }
+.parallax { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.parallax .layer { position: absolute; left: 0; right: 0; background-repeat: repeat-x; }
+.parallax .sky { inset: 0; background: linear-gradient(#bfe3f2, #eaf6e4 70%); }
+.parallax .far { bottom: 30%; height: 35%; opacity: .55;
+  background-image: radial-gradient(ellipse 120px 60px at 60px 100%, #9cc79a 98%, transparent 100%);
+  background-size: 160px 100%; animation: drift 90s linear infinite; }
+.parallax .mid { bottom: 12%; height: 30%; opacity: .8;
+  background-image: radial-gradient(ellipse 90px 50px at 45px 100%, #6fae6a 98%, transparent 100%);
+  background-size: 110px 100%; animation: drift 50s linear infinite; }
+.parallax .near { bottom: 0; height: 14%; background: linear-gradient(#5f9a4f, #4c7f40); }
+@keyframes drift { from { background-position-x: 0; } to { background-position-x: -1600px; } }
+
+.battle-scene { color: #f2f4ea; min-height: 300px; }
+.battle-scene .sky { background: linear-gradient(#2c3a4a, #4b5d4a 75%); }
+.battle-scene .far { background-image: radial-gradient(ellipse 120px 60px at 60px 100%, #3e5640 98%, transparent 100%); }
+.battle-scene .mid { background-image: radial-gradient(ellipse 90px 50px at 45px 100%, #34503a 98%, transparent 100%); }
+.battle-scene .near { background: linear-gradient(#2d4430, #22351f); }
+.battle-scene .topline { margin-bottom: 8px; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.greenhouse .sky { background: linear-gradient(#fbf6e4, #e6f3d8 70%); }
+.greenhouse .far, .greenhouse .mid { opacity: .35; }
+.event-scene .sky { background: linear-gradient(#d9d2f0, #eef0dc 70%); }
+.garden-scene { background: linear-gradient(#f7f3df, #dff0cf); border: 1px solid var(--line); }
+.chest-scene { background: linear-gradient(#fff4cf, #f3dfa0); }
+
+/* 地圖（橫向卷軸） */
+.map-head { position: relative; z-index: 1; padding: 10px 14px 0; display: grid; gap: 2px; }
+.map-head h2 { margin: 0; }
+.map-scroll { overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; border-radius: 0 0 14px 14px; }
+.map-track { position: relative; height: 360px; }
+.map-lines { position: absolute; inset: 0; z-index: 1; }
+.map-lines line { stroke: rgba(70,90,70,.35); stroke-width: 3; stroke-dasharray: 6 6; }
+.map-lines line.walked { stroke: #3f7d4e; stroke-dasharray: none; stroke-width: 4; }
+.map-lines line.next { stroke: #d9a21b; stroke-width: 4; }
+.map-node { position: absolute; z-index: 2; transform: translate(-50%, -50%); width: 92px; border: 3px solid transparent; border-radius: 14px;
+  background: rgba(255,253,243,.92); padding: 4px; text-align: center; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.map-node .e { font-size: 1.8rem; display: block; line-height: 1.2; }
+.map-node small { font-size: .7rem; line-height: 1.2; display: block; }
+.map-node:disabled { opacity: .55; cursor: default; }
+.map-node.done { opacity: .8; background: #e6f3e2; }
+.map-node.here { opacity: 1; border-color: #3f7d4e; }
+.map-node.reachable { opacity: 1; border-color: #d9a21b; animation: pulse-gold 1.2s infinite; cursor: pointer; }
+.map-node.type-boss .e { font-size: 2.4rem; }
+.map-node.type-treasure, .map-node.type-event { background: #fff4cf; }
+@keyframes pulse-gold { 50% { box-shadow: 0 0 0 6px rgba(217,162,27,.25); } }
+.party { position: absolute; z-index: 3; transform: translate(-50%, -150%); font-size: 1.4rem; white-space: nowrap;
+  animation: walk .6s ease-in-out infinite alternate; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+@keyframes walk { from { margin-top: 0; } to { margin-top: -5px; } }
+
+/* 六階段成長條 */
+.stage-track { display: flex; justify-content: center; gap: 2px; margin: 4px 0; flex-wrap: wrap; }
+.stage-track span { font-size: .65rem; padding: 1px 4px; border-radius: 6px; background: #e6e9dc; color: #8a9488; }
+.stage-track span.done { background: #cfe6bb; color: #3f5f43; }
+.stage-track span.now { background: var(--green); color: #fff; font-weight: 700; }
+.stage-track span.ability { outline: 1px dashed #d9a21b; }
+
+/* 栽培室 */
+.greenhouse h3 { margin-top: 12px; }
+.plots { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.plot { background: rgba(255,253,243,.95); border: 3px solid transparent; border-radius: 14px; padding: 12px 8px; text-align: center; box-shadow: 0 2px 0 rgba(0,0,0,.08); color: var(--ink); }
+.plot .emoji { font-size: 3.6rem; line-height: 1.1; transition: transform .3s; }
+.plot .emoji.grow-0 { transform: scale(.6); } .plot .emoji.grow-1 { transform: scale(.8); }
+
+/* 植物研究者（交易） */
+.shop-list { display: grid; gap: 10px; }
+.shop-item { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.shop-item .card { flex: 0 0 112px; cursor: default; }
+.shop-item .arrow { font-size: 1.4rem; color: var(--muted); }
+.shop-buy { display: grid; gap: 4px; }
+.card.upgraded { background: #fff8e1; box-shadow: 0 0 0 2px #d9a21b inset; }
+.plot .pname { font-weight: 700; }
+.plot .owner, .plot .stage { font-size: .85rem; color: var(--muted); }
+.plot .ability { font-size: .75rem; color: #44564a; margin-top: 4px; }
+.pot { background: linear-gradient(#fffdf3 70%, #e9d3b8); }
+.pot.empty { border: 2px dashed #c9a77f; display: grid; gap: 4px; justify-items: center; }
+.pot.mature { box-shadow: 0 0 0 3px #d9a21b inset; }
+.plot:disabled, .hero:disabled { cursor: default; }
+
+/* 戰鬥（側視） */
+.arena { display: grid; grid-template-columns: 3fr 2fr; gap: 12px; align-items: end; min-height: 230px; }
+.party-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+.hero { width: 120px; background: rgba(0,0,0,.25); border: 3px solid transparent; border-radius: 12px; padding: 6px; text-align: center; color: inherit; }
+.hero.active { border-color: #f3c94a; background: rgba(255,255,255,.15); transform: translateY(-6px); }
+.hero.down { opacity: .45; filter: grayscale(1); }
+.hero .who { display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+.hero .big { font-size: 2.4rem; }
+.hero .plantmini { font-size: 1.5rem; }
+.hero .nm, .foe .nm { font-weight: 700; font-size: .9rem; }
+.hero .nums, .foe .nums { font-size: .85rem; }
+.hero .muted { color: #cfd8c8; }
+.foe { text-align: center; border: 3px solid transparent; border-radius: 14px; padding: 6px; }
+.foe .virus { font-size: 5.5rem; line-height: 1.1; animation: bob 2s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
+.foe .intent { background: rgba(0,0,0,.4); border-radius: 10px; padding: 6px 8px; font-weight: 700; margin-bottom: 6px; }
+.bar.foe > i { background: #8e4b9e; }
+.battle-scene .bar { background: rgba(255,255,255,.2); }
+.armor { margin-top: 6px; background: rgba(0,0,0,.35); border-radius: 8px; padding: 4px 8px; font-size: .85rem; }
+
+/* 可放置的目標 */
+.plot.targetable, .hero.targetable, .foe.targetable { border-color: var(--good); animation: pulse 1s infinite; cursor: pointer; }
+.foe.targetable { background: rgba(47,143,91,.15); }
+.drop-hover { outline: 4px solid #f3c94a !important; transform: scale(1.04); }
+
+/* 卡牌與拖曳 */
+.card { position: relative; touch-action: none; user-select: none; cursor: grab; }
+.card .cost { position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; background: #d9a21b; color: #fff; font-weight: 700; font-size: .85rem; line-height: 22px; }
+.card:disabled { opacity: .45; cursor: not-allowed; }
+.drag-ghost { position: fixed; z-index: 1000; pointer-events: none; transform: rotate(-4deg) scale(1.05); box-shadow: 0 10px 24px rgba(0,0,0,.35); opacity: .95; }
+body.dragging, body.dragging * { cursor: grabbing !important; }
+body.dragging .hand .card.sel { opacity: .3; }
+.card.kind-攻擊 { border-top: 5px solid #c2554b; }
+.card.kind-防禦 { border-top: 5px solid #4a7fb0; }
+.card.kind-Buff { border-top: 5px solid #d9a21b; }
+.card.kind-特殊 { border-top: 5px solid #8e4b9e; }
+.card.kind-照料 { border-top: 5px solid #3f7d4e; }
+.btn.purify { background: #4a7fb0; }
+.btn.purify:hover { background: #3a6894; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tab { border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 6px 10px; }
+.tab[aria-pressed="true"] { border-color: var(--green); background: #e6f3e2; }
+.others { margin-top: 8px; }
+
+/* 收穫與事件 */
+.reward { justify-content: center; }
+.reward-card { flex-basis: 150px; cursor: pointer; }
+.event-card { max-width: 520px; margin: 10px auto; background: rgba(255,253,243,.95); border-radius: 16px; padding: 18px; box-shadow: 0 4px 0 rgba(0,0,0,.1); }
+.event-card .big { font-size: 3.5rem; }
+.event-choices { display: grid; gap: 8px; margin-top: 10px; }
+.event-choices .btn { text-align: left; }
+
+/* 牌卡庫 */
+.dialog.library { max-width: 920px; max-height: 88vh; overflow-y: auto; text-align: left; }
+.lib-row { flex-wrap: wrap; overflow: visible; }
+.lib-item { text-align: center; }
+.lib-item .card { cursor: default; }
+.lib-item.locked { opacity: .45; }
+.lib-plants { display: flex; gap: 10px; flex-wrap: wrap; }
+.lib-plant { background: #fff; border: 2px solid var(--line); border-radius: 12px; padding: 8px; width: 180px; display: grid; justify-items: center; gap: 2px; }
+.lib-plant .big { font-size: 2rem; }
+
+.log-panel summary { cursor: pointer; font-weight: 700; }
+
+/* 成功結局：日出 */
+.ending { position: fixed; inset: 0; z-index: 900; overflow: hidden; display: grid; place-items: center; }
+.end-sky { position: absolute; inset: 0; background: linear-gradient(#1d2547, #4b3b6b 60%, #e98c5f);
+  animation: dawn 5s ease-out forwards; }
+@keyframes dawn {
+  0% { background: linear-gradient(#1d2547, #4b3b6b 60%, #e98c5f); filter: brightness(.6); }
+  100% { filter: brightness(1.25) saturate(1.1) hue-rotate(-12deg); }
+}
+.end-sun { position: absolute; left: 50%; bottom: -160px; width: 180px; height: 180px; margin-left: -90px; border-radius: 50%;
+  background: radial-gradient(circle, #fff6c2, #ffd35a 60%, #ff9f3f); box-shadow: 0 0 80px 30px rgba(255,200,90,.6);
+  animation: sunrise 4s ease-out forwards; }
+@keyframes sunrise { to { bottom: 42%; } }
+.end-sun .rays { position: absolute; inset: -60px; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,230,140,.35) 0 8deg, transparent 8deg 20deg);
+  animation: spin 30s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.end-hills { position: absolute; left: -10%; right: -10%; bottom: 0; height: 32%; border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+  background: linear-gradient(#6fae6a, #3f7d4e); }
+.end-garden { position: absolute; bottom: 12%; left: 0; right: 0; display: flex; justify-content: center; gap: 22px; }
+.end-plant { display: grid; justify-items: center; opacity: 0; animation: pop .6s ease-out forwards; animation-delay: 3.2s; }
+.end-plant .pl { font-size: 3rem; }
+.end-plant .ch { font-size: 1.6rem; }
+@keyframes pop { from { opacity: 0; transform: translateY(20px) scale(.6); } to { opacity: 1; transform: none; } }
+.end-text { position: relative; z-index: 2; text-align: center; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.45);
+  margin-bottom: 22vh; opacity: 0; animation: pop .8s ease-out forwards; animation-delay: 2.4s; }
+.end-text h2 { font-size: 2.2rem; }
+
+@media (max-width: 620px) {
+  .arena { grid-template-columns: 1fr; }
+  .foe { order: -1; }
+  .hero { width: 100px; }
+  .map-track { height: 320px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .parallax .layer, .party, .foe .virus, .end-sun .rays { animation: none; }
+}
+
+/* ===== 20261123 美術：角色圖與卡牌風格（參考角色表的暖色水彩風） ===== */
+:root { --parch: #fbf3df; --parch-d: #ecdcb8; --wood: #8a6a4a; --wood-d: #5e4630; }
+.art { display: block; object-fit: contain; pointer-events: none; user-select: none; }
+.sprout { display: inline-block; font-size: 1.8rem; line-height: 1; }
+
+/* 首頁與角色選擇 */
+.home-cast { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-bottom: 6px; }
+.cast { display: flex; align-items: flex-end; }
+.cast-char { height: 110px; } .cast-plant { height: 72px; margin-left: -12px; }
+.home-foes { display: flex; justify-content: center; align-items: flex-end; gap: 16px; margin: 14px 0; }
+.foe-mini { height: 48px; } .foe-elite { height: 72px; } .foe-boss { height: 110px; }
+.char { display: grid; gap: 2px; justify-items: start; }
+.char-pics { display: flex; align-items: flex-end; height: 70px; }
+.char-pic { height: 70px; } .char-plant { height: 44px; margin-left: -6px; }
+.tab-pic { display: inline-block; height: 22px; vertical-align: middle; }
+
+/* 地圖 */
+.node-art { height: 40px; margin: 0 auto; }
+.map-node.type-boss .node-art { height: 56px; }
+.party { display: flex; transform: translate(-50%, -120%); }
+.party-char { height: 46px; margin-left: -10px; }
+.art.tint { filter: hue-rotate(-60deg) saturate(1.2); }
+
+/* 栽培室 */
+.plot-pic { display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 110px; }
+.plot-plant { height: 100px; }
+.plot-plant.stage-1 { height: 68px; }
+.plot-pic .sprout { font-size: 2.4rem; }
+.plot-owner { height: 56px; opacity: .95; }
+
+/* 戰鬥 */
+.hero { width: 128px; }
+.hero .who { position: relative; height: 92px; display: flex; align-items: flex-end; justify-content: center; }
+.hero-char { height: 88px; }
+.hero-plant { height: 46px; margin-left: -14px; }
+.hero-plant.stage-1 { height: 34px; }
+.hero .marks { position: absolute; top: 0; right: 2px; font-size: 1.1rem; }
+.foe-art { margin: 0 auto; filter: drop-shadow(0 6px 6px rgba(0,0,0,.35)); animation: bob 2.4s ease-in-out infinite; }
+.foe-art.tier-mini { height: 110px; } .foe-art.tier-elite { height: 150px; } .foe-art.tier-boss { height: 210px; }
+
+/* 卡牌：羊皮紙底、木色邊框、上方牌種色帶 */
+.card { flex: 0 0 122px; min-height: 176px; padding: 6px 6px 8px; background: linear-gradient(var(--parch), var(--parch-d));
+  border: 2px solid var(--wood); border-radius: 12px; box-shadow: 0 3px 0 var(--wood-d), inset 0 0 0 2px rgba(255,255,255,.5); color: #4a3a28; }
+.card .pic { position: relative; height: 62px; margin: 2px 0 4px; border-radius: 8px; background: radial-gradient(circle at 50% 60%, #fffaf0, #f0e2c2); display: grid; place-items: center; overflow: hidden; }
+.card .card-art { height: 60px; }
+.card .card-emoji { position: absolute; right: 3px; bottom: 1px; font-size: .95rem; }
+.card .card-icon { font-size: 2rem; }
+.card .n { font-weight: 700; font-size: .95rem; }
+.card .k { font-size: .68rem; color: #8a7458; }
+.card .d { font-size: .72rem; line-height: 1.3; color: #5a4834; }
+.card .cost { background: #d9a21b; border: 2px solid #fff3c8; width: 24px; height: 24px; line-height: 20px; z-index: 1; }
+.card.kind-攻擊 { border-top: 6px solid #c2554b; }
+.card.kind-防禦 { border-top: 6px solid #4a7fb0; }
+.card.kind-Buff { border-top: 6px solid #d9a21b; }
+.card.kind-特殊 { border-top: 6px solid #8e4b9e; }
+.card.kind-照料 { border-top: 6px solid #3f7d4e; }
+.card.set-sunflower .pic { background: radial-gradient(circle, #fff6cf, #f6d77a); }
+.card.set-turtle .pic { background: radial-gradient(circle, #effae4, #bfdca6); }
+.card.set-tomato .pic { background: radial-gradient(circle, #f1e6ff, #b7a0d8); }
+.card.set-lantern .pic { background: radial-gradient(circle, #fff0de, #f5b37a); }
+.card.upgraded { box-shadow: 0 3px 0 var(--wood-d), 0 0 0 3px #e7b93a; background: linear-gradient(#fff8e1, #f4dca0); }
+.card.sel { transform: translateY(-8px); box-shadow: 0 6px 0 var(--wood-d), 0 0 0 3px var(--good); }
+
+/* 戰後收穫：每人一列 */
+.reward-row { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: center; background: rgba(255,253,243,.7); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
+.reward-row.done { opacity: .6; }
+.reward-who { display: grid; justify-items: center; gap: 2px; }
+.reward-pic { height: 64px; }
+.reward-card { cursor: pointer; }
+.reward-card:hover { transform: translateY(-4px); }
+.skip { align-self: center; }
+.chest-card { flex-basis: 150px; cursor: pointer; }
+
+/* 升階選牌 */
+.pick-overlay { z-index: 800; }
+.pick-dialog { max-width: 620px; }
+.pick-head { display: flex; justify-content: center; align-items: flex-end; gap: 6px; }
+.pick-plant { height: 110px; animation: pop .6s ease-out; }
+.pick-plant.stage-1 { height: 84px; }
+.pick-char { height: 90px; }
+.pick-cards { justify-content: center; flex-wrap: wrap; overflow: visible; }
+.pick-card { cursor: pointer; }
+.pick-card:hover { transform: translateY(-6px); }
+
+/* 交易與牌組 */
+.shop-group, .deck-group { margin: 6px 0; }
+.shop-group summary, .deck-group summary { cursor: pointer; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.lib-item .card { cursor: default; }
+
+/* 結局 */
+.end-plant { display: flex; align-items: flex-end; }
+.end-plant-art { height: 110px; } .end-plant-art.stage-1 { height: 76px; }
+.end-char { height: 84px; margin-left: -10px; }
+.lose-boss { height: 140px; margin: 0 auto; }
+
+/* ===== 20261123 美術第二版：場景背景圖、卡牌底框（依企劃卡牌總覽） ===== */
+.scene-bg { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; pointer-events: none; }
+.home { position: relative; min-height: 78vh; border-radius: 16px; overflow: hidden; padding-top: 0; }
+.home-inner { position: relative; z-index: 1; padding: 24px 12px; }
+.home h1 { text-shadow: 0 2px 6px rgba(255,250,235,.9); }
+.home .muted { color: #4a3a28; text-shadow: 0 1px 3px rgba(255,250,235,.9); }
+
+/* 戰鬥場景改成明亮背景，文字改深色 */
+.battle-scene { color: var(--ink); min-height: 360px; }
+.battle-scene .topline { text-shadow: none; display: inline-block; background: rgba(255,253,243,.85); border-radius: 10px; padding: 4px 10px; }
+.hero { background: rgba(255,253,243,.82); }
+.hero .muted { color: var(--muted); }
+.foe .intent { background: rgba(60,30,60,.78); color: #fff; }
+.battle-scene .bar { background: rgba(0,0,0,.15); }
+.foe .nm, .foe .nums { background: rgba(255,253,243,.82); border-radius: 8px; padding: 0 6px; display: inline-block; }
+.armor { background: rgba(60,30,60,.75); color: #fff; }
+.greenhouse h2, .greenhouse h3, .greenhouse > .scene-body > .muted { display: inline-block; background: rgba(255,253,243,.82); border-radius: 8px; padding: 2px 8px; }
+.event-card, .reward-row { background: rgba(255,253,243,.9); }
+.chest-scene, .garden-scene { background: none; border: none; }
+.garden-scene h2, .garden-scene .scene-body > .muted { display: inline-block; background: rgba(255,253,243,.85); border-radius: 8px; padding: 2px 8px; }
+.chest-art { height: 110px; margin: 0 auto 6px; }
+.researcher-art { height: 180px; margin: 0 auto; }
+
+/* 植物各階段大小 */
+.plot-plant.stage-0 { height: 60px; } .plot-plant.stage-1 { height: 84px; } .plot-plant.stage-2 { height: 108px; }
+.hero-plant.stage-0 { height: 28px; } .hero-plant.stage-1 { height: 38px; } .hero-plant.stage-2 { height: 50px; }
+.pick-plant.stage-1 { height: 96px; } .pick-plant.stage-2 { height: 120px; }
+.end-plant-art.stage-0 { height: 60px; } .end-plant-art.stage-1 { height: 84px; } .end-plant-art.stage-2 { height: 110px; }
+.hero-char { height: 92px; }
+.hero.down .hero-char { height: 60px; }
+
+/* 結局：背景圖＋太陽光暈 */
+.end-sky { background-size: cover; background-position: center; }
+.end-sun { opacity: .55; mix-blend-mode: screen; }
+.end-glow { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, rgba(255,220,140,.55), transparent 60%); opacity: 0; animation: glow 5s ease-out forwards; }
+@keyframes glow { to { opacity: 1; } }
+
+/* 卡牌：藤蔓羊皮紙底框 */
+.card { flex: 0 0 126px; width: 126px; height: 189px; min-height: 0; padding: 20px 14px 14px;
+  background: url('assets/card-frame.jpg') center / 100% 100% no-repeat; border: none; border-radius: 10px;
+  box-shadow: 0 3px 6px rgba(60,40,10,.35); color: #4a3420;
+  font-family: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "MingLiU", serif;
+  display: flex; flex-direction: column; align-items: center; text-align: center; overflow: hidden; }
+.card[class*="kind-"] { border: none; }
+.card .cost { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; line-height: 22px; border: none; border-radius: 50%; background: #3e5e3a; color: #fff; font-size: .8rem; font-weight: 700; }
+.card .n { font-size: 1rem; font-weight: 700; letter-spacing: .08em; color: #4a2e14; margin-top: 2px; white-space: nowrap; }
+.card .pic, .card[class*="set-"] .pic { height: 64px; width: 100%; margin: 4px 0 2px; background: none; display: grid; place-items: center; }
+.card .card-art { max-height: 62px; max-width: 92px; height: auto; width: auto; filter: drop-shadow(0 2px 2px rgba(80,50,20,.25)); }
+.card .card-icon { font-size: 2rem; }
+.card .k { font-size: .66rem; font-weight: 700; letter-spacing: .1em; color: #8a7458; }
+.card.kind-攻擊 .k { color: #b5523f; } .card.kind-防禦 .k { color: #4f8a3a; } .card.kind-Buff .k { color: #c08a2a; }
+.card.kind-特殊 .k { color: #8e4b9e; } .card.kind-照料 .k, .card.kind-栽培植物 .k { color: #4f8a3a; }
+.card .d { width: 100%; border-top: 1px solid rgba(120,80,40,.35); margin-top: 2px; padding-top: 3px; font-size: .62rem; line-height: 1.35; color: #4a3420; }
+.card.upgraded { box-shadow: 0 0 0 3px #e7b93a, 0 3px 6px rgba(60,40,10,.35); background: url('assets/card-frame.jpg') center / 100% 100% no-repeat; }
+.card.upgraded .n { color: #9a5b00; }
+.card.sel { transform: translateY(-8px); box-shadow: 0 0 0 3px #4f8a3a, 0 8px 12px rgba(0,0,0,.3); }
+.chest-card { flex-basis: 150px; width: 150px; height: 210px; }
+.lib-item .card { flex-basis: 126px; }
+
+/* 視窗蓋在場景上方；病毒血條 */
+.overlay { z-index: 700; }
+.pick-overlay { z-index: 800; }
+.ending { z-index: 900; }
+.bar.virus-hp > i { background: #8e4b9e; }
+.foe .bar.virus-hp { width: 70%; margin: 4px auto; }
+
+/* ---- 水彩復古 ICON：事件插圖、資源圖示 ---- */
+.event-art { display: block; width: 180px; height: 180px; object-fit: contain; margin: 0 auto 6px; }
+.res-icon { display: inline-block; width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-top: -3px; }
+.btn .res-icon { width: 20px; height: 20px; }
+.reward-icon { width: 72px; height: 72px; object-fit: contain; }
+
+/* ---- 寶箱：收穫圖示、研究者 NPC ---- */
+.npc-offer { display: flex; align-items: flex-start; gap: 6px; }
+.npc-offer .npc { display: flex; flex-direction: column; align-items: center; width: 120px; }
+.npc-offer .npc-art { height: 170px; width: auto; }
+.npc-offer .npc-say { background: rgba(255,253,243,.95); border: 1px solid var(--line); border-radius: 10px; padding: 4px 8px; font-size: .78rem; margin-bottom: 4px; }
+
+/* ---- 失敗結局：花園被細菌入侵，倒下的角色躺在小徑上 ---- */
+.overlay.lose-overlay { background-color: #4a5240; background-size: cover; background-position: center; align-items: flex-start; padding-top: 6vh; }
+.overlay.lose-overlay .dialog.lose { background: rgba(255,253,243,.88); padding: 12px 28px; }
+.lose-ground { position: absolute; left: 0; right: 0; bottom: 6vh; display: flex; align-items: flex-end; justify-content: center; gap: 2vw; pointer-events: none; }
+/* 病毒依等級：迷你怪比人小、小怪約半身、BOSS 和人差不多高 */
+.lose-foe { width: auto; margin: 0 1vw 0 0; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+.lose-foe.foe-tier-mini { height: 14vh; }
+.lose-foe.foe-tier-elite { height: 22vh; }
+.lose-foe.foe-tier-boss { height: 36vh; }
+
+/* ---- 地圖：非戰鬥地點用水彩圖示 ---- */
+.map-node .node-art { width: auto; object-fit: contain; }
+.node-mystery { position: relative; display: block; height: 40px; }
+.node-mystery .node-art { filter: brightness(0) opacity(.25); }
+.node-mystery b { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #7a4fb0; text-shadow: 0 0 4px #fff, 0 0 8px #fff; }
+
+/* ---- 首頁：白柴犬圖是方形，縮成約一半才跟其他角色同比例 ---- */
+.cast-char.char-shiba { height: 56px; }
+/* 首頁：角色疊在植物上面，不被植物擋住 */
+.cast-char { position: relative; z-index: 1; }
+
+/* ---- 白柴犬（站姿圖是方形）在其他畫面也縮成約一半 ---- */
+.char-pic.char-shiba { height: 36px; }
+.party-char.char-shiba { height: 24px; }
+.plot-owner.char-shiba { height: 30px; }
+.hero-char.char-shiba { height: 48px; }
+.hero.down .hero-char.char-shiba { height: 40px; }
+.reward-pic.char-shiba { height: 34px; }
+.pick-char.char-shiba { height: 48px; }
+.end-char.char-shiba { height: 44px; }
+.lose-down { text-align: center; }
+.lose-down .muted { display: inline-block; background: rgba(255,253,243,.85); border-radius: 8px; padding: 0 8px; font-size: .85rem; }
+/* 倒下的人：坐姿約 34vh；白柴犬是趴著的狗，高度約一半 */
+.lose-char { height: 34vh; max-height: 320px; width: auto; filter: saturate(.75) drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+.lose-char.char-shiba { height: 15vh; max-height: 140px; }
